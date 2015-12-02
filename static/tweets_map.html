@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false&libraries=visualization"></script>
+<script type="text/javascript" src="jquery-1.7.2.js"></script>
+<script type="text/javascript" src="jquery.eventsource.js"></script>
+<script type="text/javascript" src="heatmap.js"></script>
+<script type="text/javascript" src="heatmap-gmaps.js"></script>
+
+<script type="text/javascript">
+    var map, pointarray, heatmap;
+    var taxiData = [
+        new google.maps.LatLng(37.782551, -122.445368)
+    ];
+    var counter1 = 0;
+    var counter2 = 0;
+    var counter3 = 0;
+    var env = 'local';
+
+    if (env == 'local') {
+        var url_flask = "http://localhost:5000/tweets?callback=loomit";
+    } else {
+        var url_flask = "my_flask_url";
+    }
+
+    function initialize() {
+        var config = {
+            "radius": 30,
+            "element": "map_canvas",
+            "visible": true,
+            "opacity": 40,
+            "gradient": {
+                0.45: "rgb(0,0,255)",
+                0.55: "rgb(0,255,255)",
+                0.65: "rgb(0,255,0)",
+                0.95: "yellow",
+                1.0: "rgb(255,0,0)"
+            }
+        };
+
+
+        var myOptions = {
+            zoom: 2,
+            center: new google.maps.LatLng(37.774546, -122.433523),
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+
+        map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+        google.maps.event.addListener(map, "idle", function() {});
+
+
+        $.eventsource({
+            label: "json-event-source1",
+            url: "http://localhost:5000/tweets?callback=loomit",
+            dataType: "json",
+            open: function() {
+                console.log("opened for sentiment");
+            },
+            message: function(data) {
+                console.log(data.sentiment);
+                var latLng = new google.maps.LatLng(data.coordinates[1], data.coordinates[0]);
+                if (data.sentiment == 'positive') {
+                    counter2 = counter2 + 1;
+                    var marker = new google.maps.Marker({
+                        position: latLng,
+                        map: map,
+                        icon: 'http://i.imgur.com/yQELwy1.png',
+                        // animation: google.maps.Animation.DROP
+                    });
+                } else if (data.sentiment == 'negative') {
+                    counter3 = counter3 + 1;
+                    var marker = new google.maps.Marker({
+                        position: latLng,
+                        map: map,
+                        icon: 'http://i.imgur.com/aJbcM9U.png',
+                        // animation: google.maps.Animation.DROP
+                    });
+                } else {
+                    counter1 = counter1 + 1;
+                    var marker = new google.maps.Marker({
+                        position: latLng,
+                        map: map,
+                        icon: 'http://i.imgur.com/upfXfKX.png',
+                        animation: google.maps.Animation.DROP
+                    });
+                }
+                $('#sidebar #counter1').text("Total number of tweets retrieved : " + counter1);
+                $('#sidebar #counter2').text("Total number of positive tweets retrieved : " + counter2);
+                $('#sidebar #counter3').text("Total number of negative tweets retrieved : " + counter3);
+            },
+        });
+
+
+    };
+</script>
+
+
+<body onload="initialize()">
+    <div id="result"></div>
+    <div id="map_canvas" style="height: 600px; width: 800px;"></div>
+    <button onclick="toggleHeatmap()">Toggle Heatmap</button>
+    <button onclick="changeGradient()">Change gradient</button>
+    <button onclick="changeRadius()">Change radius</button>
+    <button onclick="changeOpacity()">Change opacity</button>
+
+    <div id="sidebar" style="position:absolute;top:0;right:10%;">
+        <div>
+            <p id="counter1"> </p>
+        </div>
+        <div>
+            <p id="counter2"> </p>
+        </div>
+        <div>
+            <p id="counter3"> </p>
+        </div>
+    </div>
+</body>
+
+</html>
